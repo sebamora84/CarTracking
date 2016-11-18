@@ -1,0 +1,97 @@
+<!DOCTYPE html >
+<head>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<title>Car Tracking</title>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYM4cIZ1_EyWfXnjUiMizNEKw56g9gmDA"
+type="text/javascript"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script type="text/javascript">
+	//Google maps variables
+	var map;
+	var lastMarker;
+	var tracePath;
+	
+	//local variables
+	var pathArray;	
+	var lastMarkerId;
+	
+	$(function(){
+		lastMarkerId = 0;
+		pathArray = new Array();
+		initMap();
+		//initTraceUpdate();	
+		setInterval(initTraceUpdate,5000);		
+	});
+	function initMap(){
+		map = new google.maps.Map(document.getElementById("map"), {
+					center: new google.maps.LatLng(-22.516354, -63.799767),
+					zoom: 16,
+					mapTypeId: google.maps.MapTypeId.ROADMAP
+				});
+	}
+	
+	function initTraceUpdate(){		
+			$.post("getLastMarkersJSON.php",
+				{ unit_id: 1000 , last_id: lastMarkerId },
+				function(data, status){
+					updateTrace(data, status);
+				});		
+	}
+	function updateTrace(data, status) {
+		var lastMarkerData;
+		var point;
+		var jsonData = JSON.parse(data);
+		if (jsonData.length == 0) { return; };
+		$.each(jsonData, function(index, element) {
+            lastMarkerData = element;
+			lastMarkerId = lastMarkerData.id;
+			point = new google.maps.LatLng(
+				parseFloat(lastMarkerData.lat),
+				parseFloat(lastMarkerData.lng));			
+			pathArray.push(point);
+        });
+		
+		//Set the path
+		if(tracePath!=null)
+		{
+			//delete the trace from the map
+			tracePath.setMap(null);
+		}
+		tracePath = new google.maps.Polyline({
+			path: pathArray,
+			geodesic: true,
+			strokeColor: '#FF0000',
+			strokeOpacity: 1.0,
+			strokeWeight: 2
+		});
+		tracePath.setMap(map);		
+		
+		//Set Last marker
+		if(lastMarker!=null)
+		{
+			//delete the marker from the map
+			lastMarker.setMap(null);
+		}			
+		var point = new google.maps.LatLng(
+				parseFloat(lastMarkerData.lat),
+				parseFloat(lastMarkerData.lng));
+		var icon = 'http://labs.google.com/ridefinder/images/mm_20_blue.png';
+		lastMarker = new google.maps.Marker({
+			map: map,
+			position: point,
+			icon: icon.icon
+		});		
+	}
+	
+</script>
+<style>
+#map { width: 800px; height: 600px; margin: auto } 
+</style>
+</head>
+
+<body>
+	<div id="map"/>
+</body>
+
+</html>
