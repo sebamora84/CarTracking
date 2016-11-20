@@ -7,7 +7,7 @@ class MarkersManager
 		// Opens a connection
 		$connection=GetDbConnection();
 		// Select all the rows in the markers table
-		$statement = $connection->prepare("SELECT * FROM markers WHERE id>:last_id AND unit_id=:uid ORDER BY id ASC");
+		$statement = $connection->prepare("SELECT * FROM marker WHERE id>:last_id AND unit_id=:uid ORDER BY id ASC");
 		$statement->bindParam(':last_id', $last_id);
 		$statement->bindParam(':uid', $unit_id);
 		$statement->execute();
@@ -32,7 +32,7 @@ class MarkersManager
 		// Opens a connection
 		$connection=GetDbConnection();
 		// Select the row in the markers table
-		$statement = $connection->prepare("SELECT * FROM markers WHERE id=:id");
+		$statement = $connection->prepare("SELECT * FROM marker WHERE id=:id");
 		$statement->bindParam(':id', $id);
 		$statement->execute();
 		// Iterate through the rows, adding nodes for each
@@ -59,7 +59,7 @@ class MarkersManager
 		// Opens a connection
 		$connection=GetDbConnection();
 		// Select all the rows in the markers table
-		$statement = $connection->prepare("INSERT INTO markers(id ,device_id, unit_id ,lat ,lng ,accuracy ,type, timestamp) VALUES (:id, :device_id, :unit_id, :lat ,:lng ,:accuracy ,:type, :timestamp);");
+		$statement = $connection->prepare("INSERT INTO marker(id ,device_id, unit_id ,lat ,lng ,accuracy ,type, timestamp) VALUES (:id, :device_id, :unit_id, :lat ,:lng ,:accuracy ,:type, :timestamp);");
 		$statement->bindParam(':id', $id, PDO::PARAM_INT);
 		$statement->bindParam(':device_id', $device_id, PDO::PARAM_INT);
 		$statement->bindParam(':unit_id', $unit_id, PDO::PARAM_INT);
