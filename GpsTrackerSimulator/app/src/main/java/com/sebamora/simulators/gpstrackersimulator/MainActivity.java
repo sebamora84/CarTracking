@@ -1,87 +1,66 @@
 package com.sebamora.simulators.gpstrackersimulator;
 
-import android.Manifest;
-import android.app.Service;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static android.location.LocationManager.GPS_PROVIDER;
+
 
 public class MainActivity extends AppCompatActivity {
-    TextView textView;
-    Button btnConnect;
-    Button btnDisconnect;
-    Button btnStart;
-    Button btnStop;
 
     LocationManager locationManager;
     LocationListener locationListener;
-    String lat;
-    String lng;
+    Location lastLocation;
     int id = 0;
+    Timer timer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                lat = String.format("%.6f", location.getLatitude());
-                lng = String.format("%.6f", location.getLongitude());
                 try {
-                    id++;
-                    textView.setText(lat + ":" + lng);
+                    lastLocation = location;
+                    String lat = String.format("%.12f", lastLocation.getLatitude());
+                    String lng = String.format("%.12f", lastLocation.getLongitude());
+                    String timestamp = getDate(lastLocation.getTime(), "dd/MM/yyyy kk:mm:ss.SSS");
+                    String accuracy = String.format("%.2f",lastLocation.getAccuracy());
+                    TextView txtLatLng = (TextView) findViewById(R.id.txtLatLng);
+                    txtLatLng.setText(lat+":"+lng);
+                    TextView txtAccuracy = (TextView) findViewById(R.id.txtAccuracy);
+                    txtAccuracy.setText(accuracy+" m");
+                    TextView txtTimestamp = (TextView) findViewById(R.id.txtTimestamp);
+                    txtTimestamp.setText(timestamp);
                 }
                 catch (Exception e)
                 {
@@ -105,40 +84,41 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         };
-        textView = (TextView) findViewById(R.id.textView);
-        btnConnect = (Button) findViewById(R.id.btnConnect);
-        btnConnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                locationManager.requestLocationUpdates("gps", 5000, 0, locationListener);
-            }
-        });
-        btnDisconnect = (Button) findViewById(R.id.btnDisconnect);
-        btnDisconnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                locationManager.removeUpdates(locationListener);
-            }
-        });
 
-        btnStart = (Button) findViewById(R.id.btnStart);
-        btnStart.setOnClickListener(new View.OnClickListener(){
+        ToggleButton tglGPS = (ToggleButton) findViewById(R.id.tglGPS);
+        tglGPS.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
-                SendPositionTask sendTask = new SendPositionTask();
-                sendTask.execute(String.valueOf(id++), "1000", lat, lng, "move");
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked) {
+                    locationManager.requestLocationUpdates(GPS_PROVIDER, 500, 0, locationListener);
+                }
+                else {
+                    locationManager.removeUpdates(locationListener);
+                }
             }
         });
-        btnStop = (Button) findViewById(R.id.btnStop);
-        btnStop.setOnClickListener(new View.OnClickListener(){
+        ToggleButton tglSendPosition = (ToggleButton) findViewById(R.id.tglSendPosition);
+        tglSendPosition.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked) {
+                    if(timer!=null) {
+                        timer.cancel();
+                        timer = null;
+                    }
+                    timer = new Timer();
+                    timer.schedule(new SendPositionTimerTask(), 0, 5000);
+                }
+                else {
 
+                    if(timer!=null) {
+                        timer.cancel();
+                        timer = null;
+                    }
+                }
             }
         });
-
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -162,94 +142,97 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public class SendPositionTask extends AsyncTask<String, String, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            try {
-                String id = params[0];
-                String unit_id = params[1];
-                String lat = params[2];
-                String lng = params[3];
-                String type = params[4];
+    public static String getDate(long milliSeconds, String dateFormat)
+    {
+        // Create a DateFormatter object for displaying date in specified format.
+        SimpleDateFormat formatter = new SimpleDateFormat(dateFormat);
 
-                String url = "http://mlstuff.byethost8.com/CarTracking/addMarker.php";
+        // Create a calendar object that will convert the date and time value in milliseconds to date.
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(milliSeconds);
+        return formatter.format(calendar.getTime());
+    }
+    private void ShowSendResult(String jsonItems) {
+        TextView txtResult = (TextView) findViewById(R.id.txtResult);
+        txtResult.setText(jsonItems);
+    }
+    public class SendPositionTimerTask extends TimerTask{
+        @Override
+        public void run() {
+            if (lastLocation==null)
+            {
+                return;
+            }
+
+            SendPositionTask sendTask = new SendPositionTask();
+            Marker marker = new Marker();
+            marker.id = id++;
+            marker.device_id = 9999;
+            marker.unit_id = 1000;
+            marker.lat = lastLocation.getLatitude();
+            marker.lng = lastLocation.getLongitude();
+            marker.accuracy = lastLocation.getAccuracy();
+            marker.type = "move";
+            marker.timestamp = lastLocation.getTime();
+            sendTask.execute(marker);
+        }
+    }
+
+    public class SendPositionTask extends AsyncTask<Marker, String, String> {
+        @Override
+        protected String doInBackground(Marker... params) {
+            try {
+                String url = "http://www.trackingnorte.co.nf/createMarker.php";
+                Marker marker = params[0];
                 Uri.Builder builder = new Uri.Builder()
-                        .appendQueryParameter("id", id)
-                        .appendQueryParameter("unit_id", unit_id)
-                        .appendQueryParameter("lat", lat)
-                        .appendQueryParameter("lng", lng)
-                        .appendQueryParameter("type", type);
+                        .appendQueryParameter("id", String.valueOf(marker.id))
+                        .appendQueryParameter("device_id", String.valueOf(marker.device_id))
+                        .appendQueryParameter("unit_id", String.valueOf(marker.unit_id))
+                        .appendQueryParameter("lat", String.valueOf(marker.lat))
+                        .appendQueryParameter("lng", String.valueOf(marker.lng))
+                        .appendQueryParameter("accuracy", String.valueOf(marker.accuracy))
+                        .appendQueryParameter("type", marker.type)
+                        .appendQueryParameter("timestamp", String.valueOf(marker.timestamp));
                 String postParams = builder.build().getEncodedQuery();
 
-                return SendPosition(url, postParams);
+                String jsonItems;
+                try
+                {
+                    jsonItems = new WebConnection().GetJsonItems(url, postParams);
+                    publishProgress(jsonItems);
+                }
+                catch (Exception e)
+                {
+                    Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
+                    return "Error requesting json items";
+                }
             } catch (Exception e) {
-                e.printStackTrace();
-                return "Fail";
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
+                return e.getMessage();
             }
+            return "Ok";
         }
 
         @Override
         protected void onPostExecute(String result) {
-            if (result != "Fail") {
-                // do something
-            } else {
-                // error occured
+            if (result != "Ok") {
+                Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
             }
         }
 
-        public String SendPosition(String urlRequested, String params)
-        {
-            HttpURLConnection conn = null;
-            try {
-                URL url = new URL(urlRequested);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setReadTimeout(5000);
-                conn.setConnectTimeout(5000);
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                conn.setUseCaches(false);
-                conn.setDoInput(true);
-                conn.setDoOutput(true);
-                byte[] outputInBytes = params.getBytes("UTF-8");
-                OutputStream os = conn.getOutputStream();
-                os.write(outputInBytes);
-                os.close();
-                conn.connect();
-                int status = conn.getResponseCode();
+        @Override
+        protected void onProgressUpdate(String... jsonItems){
 
-                switch (status) {
-                    case HttpURLConnection.HTTP_OK:
-                    case 201:
-                        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                        StringBuilder stringBuilder = new StringBuilder();
-                        String line;
-                        while ((line = bufferedReader.readLine()) != null) {
-                            stringBuilder.append(line + "\n");
-                        }
-                        bufferedReader.close();
-                        return stringBuilder.toString();
-                }
-
-            } catch (MalformedURLException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-            }
-            catch (Exception ex)
+            if (jsonItems[0].contains("slowAES"))
             {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
+                ShowSendResult("Regenerating cookies");
+
+                return;
             }
-            finally {
-                if (conn != null) {
-                    try {
-                        conn.disconnect();
-                    } catch (Exception ex) {
-                        Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-            }
-            return null;
+
+            ShowSendResult(jsonItems[0]);
         }
+
 
     }
 }

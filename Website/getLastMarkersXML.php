@@ -32,6 +32,7 @@ foreach ($markers as $marker){
   $newnode->setAttribute("unit_id", $marker->unit_id);
   $newnode->setAttribute("lat", $marker->lat);
   $newnode->setAttribute("lng", $marker->lng);
+  $newnode->setAttribute("accuracy", $marker->accuracy);
   $newnode->setAttribute("type", $marker->type);
   $newnode->setAttribute("timestamp", $marker->timestamp);    
 }

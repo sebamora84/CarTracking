@@ -1,10 +1,9 @@
 <?php
 function GetDbConnection() {
-	$username="b8_18936075";
+	$username="2244948_cartrk";
 	$password="sebichin84";
-	$dbname="b8_18936075_cartracking";
-	$dbhost="sql309.byethost8.com";
-	
+	$dbname="2244948_cartrk";
+	$dbhost="fdb15.biz.nf";
 	$db = new PDO('mysql:host='.$dbhost.';dbname='.$dbname, $username, $password);
 	$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 	return $db;

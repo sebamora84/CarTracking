@@ -16,9 +16,11 @@ class MarkersManager
 		while ($row = $statement->fetch()){
 		  $marker = new Marker();		  
 		  $marker->id = $row['id'];
+		  $marker->device_id = $row['device_id'];
 		  $marker->unit_id = $row['unit_id'];
 		  $marker->lat = $row['lat'];
 		  $marker->lng = $row['lng'];
+		  $marker->accuracy = $row['accuracy'];
 		  $marker->type = $row['type'];
 		  $marker->timestamp = $row['timestamp'];   
 		  array_push($list,$marker);	  
@@ -41,26 +43,31 @@ class MarkersManager
 		$marker = new Marker();	
 		while ($row = $statement->fetch()){		  	  
 		  $marker->id = $row['id'];
+		  $marker->device_id = $row['device_id'];
 		  $marker->unit_id = $row['unit_id'];
 		  $marker->lat = $row['lat'];
 		  $marker->lng = $row['lng'];
-		  $marker->type = $row['type'];
+		  $marker->type = $row['type'];		  
+		  $marker->accuracy = $row['accuracy'];
 		  $marker->timestamp = $row['timestamp'];   
 		  $marker;
 		}
 		return $marker;
 	}
 	
-	function createMarker($id ,$unit_id ,$lat ,$lng ,$type){
+	function createMarker($id, $device_id, $unit_id ,$lat ,$lng ,$accuracy ,$type, $timestamp){
 		// Opens a connection
 		$connection=GetDbConnection();
 		// Select all the rows in the markers table
-		$statement = $connection->prepare("INSERT INTO markers(id ,unit_id ,lat ,lng ,type) VALUES (:id, :unit_id, :lat ,:lng ,:type);");
+		$statement = $connection->prepare("INSERT INTO markers(id ,device_id, unit_id ,lat ,lng ,accuracy ,type, timestamp) VALUES (:id, :device_id, :unit_id, :lat ,:lng ,:accuracy ,:type, :timestamp);");
 		$statement->bindParam(':id', $id, PDO::PARAM_INT);
+		$statement->bindParam(':device_id', $device_id, PDO::PARAM_INT);
 		$statement->bindParam(':unit_id', $unit_id, PDO::PARAM_INT);
-		$statement->bindParam(':lat', $lat, PDO::PARAM_STR);
+		$statement->bindParam(':lat', $lat, PDO::PARAM_STR);		
 		$statement->bindParam(':lng', $lng, PDO::PARAM_STR);
+		$statement->bindParam(':accuracy', $accuracy, PDO::PARAM_STR);
 		$statement->bindParam(':type', $type, PDO::PARAM_STR);
+		$statement->bindParam(':timestamp', $timestamp, PDO::PARAM_STR);
 		$statement->execute();
 	}
 }

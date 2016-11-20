@@ -13,47 +13,56 @@
     tools:context="com.sebamora.simulators.gpstrackersimulator.MainActivity"
     tools:showIn="@layout/activity_main">
 
+
     <TextView
+        android:text="n/a"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="0:0"
-        android:id="@+id/textView" />
+        android:layout_alignParentTop="true"
+        android:id="@+id/txtLatLng" />
 
-    <Button
-        android:text="Connect"
+    <ToggleButton
+        android:text="Send Position"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/btnConnect"
+        android:id="@+id/tglSendPosition"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
 
-    <Button
-        android:text="Start"
+    <ToggleButton
+        android:text="GPS"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/btnStart"
-        android:layout_marginTop="161dp"
-        android:layout_below="@+id/textView"
+        android:id="@+id/tglGPS"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@+id/tglSendPosition"
+        android:layout_toEndOf="@+id/tglSendPosition"
+        android:layout_marginLeft="10dp"
+        android:layout_marginStart="10dp" />
+
+    <TextView
+        android:text="n/a"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/txtTimestamp"
+        android:layout_below="@+id/txtLatLng"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
-
-    <Button
-        android:text="Stop"
+    <TextView
+        android:text="n/a"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/btnStop"
-        android:layout_alignBaseline="@+id/btnStart"
-        android:layout_alignBottom="@+id/btnStart"
-        android:layout_toRightOf="@+id/btnStart"
-        android:layout_toEndOf="@+id/btnStart" />
-
-    <Button
-        android:text="Disconnect"
+        android:id="@+id/txtAccuracy"
+        android:layout_below="@+id/txtTimestamp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+    <TextView
+        android:text="Not send"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_toRightOf="@+id/btnConnect"
-        android:layout_toEndOf="@+id/btnConnect"
-        android:id="@+id/btnDisconnect" />
+        android:layout_below="@+id/txtAccuracy"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/txtResult" />
 </RelativeLayout>
