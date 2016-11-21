@@ -173,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             TextView txtId = (TextView) findViewById(R.id.txtNewId);
-            txtId.setText(id);
+            txtId.setText(String.valueOf(id));
         }
         catch (Exception e)
         {
@@ -197,7 +197,6 @@ public class MainActivity extends AppCompatActivity {
             marker.timestamp = lastLocation.getTime();
             SendPositionTask sendTask = new SendPositionTask();
             sendTask.execute(marker);
-            ShowNewId(id);
         }
     }
 
@@ -287,6 +286,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onProgressUpdate(String... jsonItems){
+            if(jsonItems==null || jsonItems.length == 0 || jsonItems[0] == null)
+            {
+                ShowSendResult("COuld not retrive last id");
+            }
             try {
                 JSONObject marker = new JSONObject(jsonItems[0]);
                 id = marker.getInt("id");
