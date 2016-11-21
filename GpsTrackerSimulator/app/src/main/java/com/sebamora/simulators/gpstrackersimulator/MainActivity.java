@@ -21,6 +21,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Timer;
@@ -118,6 +122,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        GetLastIdTask lastIdTask = new GetLastIdTask();
+        lastIdTask.execute("1000");
     }
 
     @Override
@@ -153,20 +160,34 @@ public class MainActivity extends AppCompatActivity {
         return formatter.format(calendar.getTime());
     }
     private void ShowSendResult(String jsonItems) {
-        TextView txtResult = (TextView) findViewById(R.id.txtResult);
-        txtResult.setText(jsonItems);
+        try {
+            TextView txtResult = (TextView) findViewById(R.id.txtResult);
+            txtResult.setText(jsonItems);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+    private void ShowNewId(int id) {
+
+        try {
+            TextView txtId = (TextView) findViewById(R.id.txtNewId);
+            txtId.setText(id);
+        }
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
     }
     public class SendPositionTimerTask extends TimerTask{
         @Override
         public void run() {
-            if (lastLocation==null)
-            {
+            if (lastLocation==null) {
                 return;
             }
-
-            SendPositionTask sendTask = new SendPositionTask();
             Marker marker = new Marker();
-            marker.id = id++;
+            marker.id = ++id;
             marker.device_id = 9999;
             marker.unit_id = 1000;
             marker.lat = lastLocation.getLatitude();
@@ -174,7 +195,9 @@ public class MainActivity extends AppCompatActivity {
             marker.accuracy = lastLocation.getAccuracy();
             marker.type = "move";
             marker.timestamp = lastLocation.getTime();
+            SendPositionTask sendTask = new SendPositionTask();
             sendTask.execute(marker);
+            ShowNewId(id);
         }
     }
 
@@ -222,17 +245,55 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onProgressUpdate(String... jsonItems){
-
-            if (jsonItems[0].contains("slowAES"))
-            {
-                ShowSendResult("Regenerating cookies");
-
-                return;
-            }
-
             ShowSendResult(jsonItems[0]);
+            ShowNewId(id);
+        }
+    }
+
+    public class GetLastIdTask extends AsyncTask<String, String, String> {
+        @Override
+        protected String doInBackground(String... params) {
+            try {
+                String unit_id = params[0];
+                String url = "http://www.trackingnorte.co.nf/getLastMarkerJSON.php";
+                Uri.Builder builder = new Uri.Builder()
+                        .appendQueryParameter("unit_id", unit_id);
+                String postParams = builder.build().getEncodedQuery();
+
+                String jsonItems;
+                try
+                {
+                    jsonItems = new WebConnection().GetJsonItems(url, postParams);
+                    publishProgress(jsonItems);
+                }
+                catch (Exception e)
+                {
+                    Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
+                    return "Error requesting json items";
+                }
+            } catch (Exception e) {
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, e);
+                return e.getMessage();
+            }
+            return "Ok";
         }
 
+        @Override
+        protected void onPostExecute(String result) {
+            if (result != "Ok") {
+                Toast.makeText(getApplicationContext(), result, Toast.LENGTH_SHORT).show();
+            }
+        }
 
+        @Override
+        protected void onProgressUpdate(String... jsonItems){
+            try {
+                JSONObject marker = new JSONObject(jsonItems[0]);
+                id = marker.getInt("id");
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            ShowNewId(id);
+        }
     }
 }
